@@ -4,8 +4,7 @@ import numpy as np
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
-from sklearn.cluster import KMeans, DBSCAN
-from sklearn.mixture import GaussianMixture
+from sklearn.cluster import DBSCAN
 
 class Recommender:
     # def __init__(self):
@@ -17,7 +16,10 @@ class Recommender:
         self.transcript = transcript
     
         # clean the dataframes
-        self.__clean_data()
+        profile, portfolio, transcript = self.__clean_data()
+        
+        # get the sparse user item matrix
+        user_item = self.__user_item()
         
     def predict(self, user_id):
         pass
@@ -83,14 +85,42 @@ class Recommender:
         profile.loc[profile['average_transaction'].isnull(), 'average_transaction'] = 0
         profile.loc[profile['stddev_transaction'].isnull(), 'stddev_transaction'] = 0
         
-        # add the dataframes to the instance
-        self.profile = profile
-        self.portfolio = portfolio
-        self.transcript = transcript  
+        return profile, portfolio, transcript 
+        
+    def __user_item(self):
+        # get the cleaned dataframes from the instance
+        profile = self.clean_profile
+        portfolio = self.clean_portfolio
+        transcript = self.clean_transcript
+        
+        # merge the average transactions with stddev to the transcript dataframe
+        transcript = transcript.merge(profile[["user_id", "average_transaction"]], on="user_id", how="left")
+        # get the received offers
+        received = transcript[transcript["event"]=="offer received"]
+        # get the completed offers
+        completed = transcript[transcript["event"]=="offer completed"]
+
+        # get the offers that were promoted and completed
+        completed = completed.loc[completed["user_id"].isin(received["user_id"]) & completed["value"].isin(received["value"]), \
+            ["user_id", "value", "average_transaction"]]
+        completed = completed.rename(columns=dict(value="offer_id"))
+
+        # add the difficulty of an offer to the dataframe
+        completed = completed.merge(portfolio[["offer_id", "difficulty"]], on="offer_id")
+        
+        # calculate the yield
+        completed["yield"] = completed["difficulty"] - completed["average_transaction"]
+        
+        # construct the user item dataframe with the yield as basis of assesment
+        user_item = completed[["user_id", "offer_id", "yield"]].groupby(["user_id", "offer_id"]).mean().unstack()
+        user_item.columns = user_item.columns.droplevel()
+        
+        return user_item
     
     @staticmethod
-    def __collaborative_recommendation():
+    def __matrix_factorization():
         pass
+        
     @staticmethod
     def __popular_recommendation():
         pass
