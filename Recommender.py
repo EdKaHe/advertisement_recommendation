@@ -16,20 +16,21 @@ class Recommender:
         self.transcript = transcript
     
         # clean the dataframes
-        profile, portfolio, transcript = self.__clean_data()
+        profile, portfolio, transcript = self.__clean_data(profile, portfolio, transcript)
         
         # get the sparse user item matrix
-        user_item = self.__user_item()
+        user_item = self.__user_item(profile, portfolio, transcript)
+        
+        # fill the missing values using matrix factorization
+        user_item = Recommender.__matrix_factorization(user_item)
+        
+        # add the full user item dataframe to the instance
+        self.user_item = user_item
         
     def predict(self, user_id):
         pass
     
-    def __clean_data(self):
-        # get the dataframes from the dataframe
-        profile = self.profile 
-        portfolio = self.portfolio
-        transcript = self.transcript
-    
+    def __clean_data(self, profile, portfolio, transcript):
         # rename the ids to user_id and offer_id
         profile = profile.rename(columns={"id": "user_id"})
         portfolio = portfolio.rename(columns={"id": "offer_id"})
@@ -87,11 +88,7 @@ class Recommender:
         
         return profile, portfolio, transcript 
         
-    def __user_item(self):
-        # get the cleaned dataframes from the instance
-        profile = self.clean_profile
-        portfolio = self.clean_portfolio
-        transcript = self.clean_transcript
+    def __user_item(self, profile, portfolio, transcript):
         
         # merge the average transactions with stddev to the transcript dataframe
         transcript = transcript.merge(profile[["user_id", "average_transaction"]], on="user_id", how="left")
@@ -118,8 +115,55 @@ class Recommender:
         return user_item
     
     @staticmethod
-    def __matrix_factorization():
-        pass
+    def __matrix_factorization(user_item, latent_features=20, learning_rate=0.0001, iters=100):
+        # get the user item matrix
+        user_item_mat = user_item.values
+        
+        # get the number of users, offers and ratings
+        n_users = user_item_mat.shape[0]
+        n_offers = user_item_mat.shape[1]
+        n_ratings = np.sum(~np.isnan(user_item_mat))
+        
+        # initialize the user and offer matrices with random values
+        user_mat = np.random.rand(n_users, latent_features)
+        offer_mat = np.random.rand(latent_features, n_offers)
+
+        # initialize sse at 0 for first iteration
+        sse_accum = 0
+
+        # keep track of iteration and MSE
+        print("Optimizaiton Statistics")
+        print("Iterations | Mean Squared Error ")
+
+        # for each iteration
+        for iteration in range(iters):
+
+            # update our sse
+            old_sse = sse_accum
+            sse_accum = 0
+
+            # For each user-offer pair
+            for i in range(n_users):
+                for j in range(n_offers):
+
+                    # if the rating exists
+                    if ~np.isnan(user_item_mat[i, j]):
+
+                        # compute the error as the actual minus the dot product of the user and offer latent features
+                        diff = user_item_mat[i, j] - np.dot(user_mat[i, :], offer_mat[:, j])
+
+                        # Keep track of the sum of squared errors for the matrix
+                        sse_accum += diff ** 2
+
+                        # update the values in each matrix in the direction of the gradient
+                        for k in range(latent_features):
+                            user_mat[i, k] += learning_rate * (2 * diff * offer_mat[k, j])
+                            offer_mat[k, j] += learning_rate * (2 * diff * user_mat[i, k])
+
+            # print results
+            print("%d \t\t %f" % (iteration+1, sse_accum / n_ratings))
+        
+        return user_mat @ offer_mat
         
     @staticmethod
     def __popular_recommendation():
