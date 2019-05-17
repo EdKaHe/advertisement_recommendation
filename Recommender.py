@@ -8,16 +8,46 @@ from sklearn.metrics import silhouette_score
 from sklearn.cluster import DBSCAN
 
 class Recommender:
-    # def __init__(self):
+    """
+    This is an example of Google style.
+
+    Args:
+        param1: This is the first param.
+        param2: This is a second param.
+
+    Returns:
+        This is a description of what is returned.
+
+    Raises:
+        KeyError: Raises an exception.
+    """
         
     def fit(self, profile, portfolio, transcript):
+        """
+        The fit method cleans the profile, portfolio and transcript dataframes and stores
+        them in the clean_profile, clean_transcript and clean_portfolio attributes. From
+        this the user item matrix is computed on the basis of yield per advertisment for each user.
+        The sparse user item matrix is filled using matrix factorization and stored as user_item
+        in the instance attributes.
+
+        Args:
+            profile (DataFrame): informations about the users in the same format
+                as supplied in the example folder
+            portfolio (DataFrame): informations about the advertisments in the same 
+                format as supplied in the example folder
+            transcript (DataFrame): temporal informations about user actions in the same
+                format as supplied in the example folder
+
+        Returns:
+        """
+    
         # add the dataframes to the dataframe
         self.profile = profile
         self.portfolio = portfolio
         self.transcript = transcript
     
         # clean the dataframes
-        clean_profile, clean_portfolio, clean_transcript = self.__clean_data(profile, portfolio, transcript)
+        clean_profile, clean_portfolio, clean_transcript = Recommender.__clean_data(profile, portfolio, transcript)
         
         # add the cleaned data to the instance
         self.clean_profile = clean_profile
@@ -25,14 +55,28 @@ class Recommender:
         self.clean_transcript = clean_transcript
         
         # get the sparse user item matrix
-        user_item = self.__user_item(clean_profile, clean_portfolio, clean_transcript)
+        user_item = Recommender.__user_item(clean_profile, clean_portfolio, clean_transcript)
         
         # fill the missing values using matrix factorization
         user_item = Recommender.__matrix_factorization(user_item)
         # add the full user item dataframe to the instance
         self.user_item = user_item
         
-    def predict(self, user_id, confidence=0.2):
+    def predict(self, user_id, confidence=0.9):
+        """
+        The predict method gets a sorted list of offers with the predicted yield. If the user
+        is in the database the prediction is done on the basis of collaborative filtering. Otherwise
+        the most popular ads are recommended. Only offers that will show profit with a certain
+        confidence are returned.
+
+        Args:
+           user_id (str): id of the user for which an array of promising offers shall be returned
+           confidence (float): confidence that the returned offers will show a profit
+
+        Returns:
+            offer_id (array): array of ids of offers that will show a profit for the specified user
+               with a certain confidence
+        """
         # get the user item dataframe
         user_item = self.user_item
         # get the cleaned profile dataframe
@@ -42,19 +86,46 @@ class Recommender:
         if np.any(user_item.index == user_id):
             # make recommendation based on collaborative recommendation
             offer_id, predicted_yield = Recommender.__collaborative_recommendation(user_item, user_id)
+            # get the standard deviation of the user spendings
+            sigma = clean_profile.loc[clean_profile["user_id"]==user_id, "stddev_transaction"]
         else:
+            # make recommendation based on the most popular ads 
             offer_id, predicted_yield = Recommender.__popular_recommendation(user_item) 
+            # get the median standard deviation of all user spendings
+            sigma = clean_profile["stddev_transaction"].median()
             
-        # get the standard deviation of the user spendings
-        sigma = clean_profile.loc[clean_profile["user_id"]==user_id, "stddev_transaction"]
-        # get the probability for a spending this high or lower
+        
+        # get the probability for a spending at least returning the investment of the ad
         probability = norm.cdf(predicted_yield, 0, sigma)
+        
         # only return offers that return yield with a certain confidence
         offer_id = offer_id[probability > confidence]
             
         return offer_id
     
-    def __clean_data(self, profile, portfolio, transcript):
+    @staticmethod
+    def __clean_data(profile, portfolio, transcript):
+        """
+        The private and static __clean_data function takes the loaded profile, portfolio,
+        and transcript dataframes and cleans them. This includes the removal of unnecessary
+        columns, one hot encoding of categorical columns, unpacking of nested columns and categorization
+        of numeric data. Furthermore some additional features as the average user spendings and
+        the standard deviation are calculated and added to the user profile dataframe.
+
+        Args:
+            profile (DataFrame): informations about the users in the same format
+                as supplied in the example folder
+            portfolio (DataFrame): informations about the advertisments in the same 
+                format as supplied in the example folder
+            transcript (DataFrame): temporal informations about user actions in the same
+                format as supplied in the example folder
+
+        Returns:
+            profile (DataFrame): profile data after cleaning and data engineering
+            portfolio (DataFrame): portfolio data after cleaning and data engineering
+            transcript (DataFrame): transcript data after cleaning and data engineering
+        """
+        
         # rename the ids to user_id and offer_id
         profile = profile.rename(columns={"id": "user_id"})
         portfolio = portfolio.rename(columns={"id": "offer_id"})
@@ -112,7 +183,29 @@ class Recommender:
         
         return profile, portfolio, transcript 
         
-    def __user_item(self, profile, portfolio, transcript):
+    @staticmethod
+    def __user_item(clean_profile, clean_portfolio, clean_transcript):
+        """
+        calculates the user item matrix based on the average yield that each advertisement
+        returns for each user        
+        
+        Args:
+            clean_profile (DataFrame): informations about the users in the same format
+                as supplied in the example folder
+            clean_portfolio (DataFrame): informations about the advertisments in the same 
+                format as supplied in the example folder
+            clean_transcript (DataFrame): temporal informations about user actions in the same
+                format as supplied in the example folder
+
+        Returns:
+            user_item (DataFrame): user item matrix as dataframe with the user ids as indices
+                and offer ids as columns
+        """
+        
+        # rename the cleaned dataframes
+        profile = clean_profile
+        portfolio = clean_portfolio
+        transcript = clean_transcript
         
         # merge the average transactions with stddev to the transcript dataframe
         transcript = transcript.merge(profile[["user_id", "average_transaction"]], on="user_id", how="left")
@@ -140,6 +233,21 @@ class Recommender:
     
     @staticmethod
     def __matrix_factorization(user_item, latent_features=20, learning_rate=0.0001, iters=100):
+        """
+        performs matrix factorization on the sparse user-item matrix in order to fill the missing
+        values and returns the user-item matrix after factorization
+
+        Args:
+            user_item (DataFrame): user item matrix as dataframe with the user ids as indices
+                and offer ids as columns
+            latent_features (int): number of latent features to use for the matrix factorization
+            learning_rate (float): learning rate that scales the update step
+            iters (int): number of iterations to update the user item matrix
+
+        Returns:
+            user_item (DataFrame): updated user item matrix after the matrix factorization
+        """
+        
         # get the user item matrix
         user_item_mat = user_item.values
         
@@ -197,6 +305,20 @@ class Recommender:
         
     @staticmethod
     def __collaborative_recommendation(user_item, user_id):
+        """
+        make a advertisement recommendation for a user on the basis of the user-item matrix after
+        matrix factorization
+
+        Args:
+            user_item (DataFrame): user item matrix after matrix factorization as dataframe 
+                with the user ids as indices and offer ids as columns
+            user_id (str): id of the user to make a recommendation for
+
+        Returns:
+            offer_ids (array): sorted array with ids of the advertisement offers that are most
+                promising to return yield
+            predicted_yield (array): sorted array with the predicted yield for each offer in offer_ids
+        """
         # get the offer ids
         offer_ids = user_item.columns.values
         
@@ -212,6 +334,19 @@ class Recommender:
         
     @staticmethod
     def __popular_recommendation(user_item):
+        """
+        make a advertisement recommendation on the basis of the most popular advertisements
+
+        Args:
+            user_item (DataFrame): user item matrix after matrix factorization as dataframe 
+                with the user ids as indices and offer ids as columns
+
+        Returns:
+            offer_ids (array): sorted array with ids of the advertisement offers that are most
+                promising to return yield    
+            median_yield (array): sorted array with the median yield of all users for each offer 
+                in offer_ids
+        """
         # get the offer ids
         offer_ids = user_item.columns.values
         # get the median yield of each offer
