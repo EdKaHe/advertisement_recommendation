@@ -1,6 +1,7 @@
 from scipy.stats import norm
 import pandas as pd
 import numpy as np
+from scipy.stats import norm
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
@@ -16,19 +17,42 @@ class Recommender:
         self.transcript = transcript
     
         # clean the dataframes
-        profile, portfolio, transcript = self.__clean_data(profile, portfolio, transcript)
+        clean_profile, clean_portfolio, clean_transcript = self.__clean_data(profile, portfolio, transcript)
+        
+        # add the cleaned data to the instance
+        self.clean_profile = clean_profile
+        self.clean_portfolio = clean_portfolio
+        self.clean_transcript = clean_transcript
         
         # get the sparse user item matrix
-        user_item = self.__user_item(profile, portfolio, transcript)
+        user_item = self.__user_item(clean_profile, clean_portfolio, clean_transcript)
         
         # fill the missing values using matrix factorization
         user_item = Recommender.__matrix_factorization(user_item)
-        
         # add the full user item dataframe to the instance
         self.user_item = user_item
         
-    def predict(self, user_id):
-        pass
+    def predict(self, user_id, confidence=0.2):
+        # get the user item dataframe
+        user_item = self.user_item
+        # get the cleaned profile dataframe
+        clean_profile = self.clean_profile 
+        
+        # check whether the user has completed any offers
+        if np.any(user_item.index == user_id):
+            # make recommendation based on collaborative recommendation
+            offer_id, predicted_yield = Recommender.__collaborative_recommendation(user_item, user_id)
+        else:
+            offer_id, predicted_yield = Recommender.__popular_recommendation(user_item) 
+            
+        # get the standard deviation of the user spendings
+        sigma = clean_profile.loc[clean_profile["user_id"]==user_id, "stddev_transaction"]
+        # get the probability for a spending this high or lower
+        probability = norm.cdf(predicted_yield, 0, sigma)
+        # only return offers that return yield with a certain confidence
+        offer_id = offer_id[probability > confidence]
+            
+        return offer_id
     
     def __clean_data(self, profile, portfolio, transcript):
         # rename the ids to user_id and offer_id
@@ -162,9 +186,41 @@ class Recommender:
 
             # print results
             print("%d \t\t %f" % (iteration+1, sse_accum / n_ratings))
+            
+        # get the user item matrix
+        user_item_mat = user_mat @ offer_mat
         
-        return user_mat @ offer_mat
+        # get the user item dataframe
+        user_item = pd.DataFrame(user_item_mat, index=user_item.index, columns=user_item.columns)
+        
+        return user_item
         
     @staticmethod
-    def __popular_recommendation():
-        pass
+    def __collaborative_recommendation(user_item, user_id):
+        # get the offer ids
+        offer_ids = user_item.columns.values
+        
+        # get the predicted yield for the user for each offer
+        predicted_yield = user_item[user_item.index==user_id].values.flatten()
+        
+        # sort by the highest predicted yield
+        idx = np.argsort(predicted_yield)[::-1]
+        offer_ids = offer_ids[idx]
+        predicted_yield = predicted_yield[idx]
+
+        return offer_ids, predicted_yield
+        
+    @staticmethod
+    def __popular_recommendation(user_item):
+        # get the offer ids
+        offer_ids = user_item.columns.values
+        # get the median yield of each offer
+        median_yield = user_item.median().values
+        
+        # sort the offers and yield
+        idx = np.argsort(median_yield)[::-1]
+        offer_ids = offer_ids[idx]
+        median_yield = median_yield[idx]
+        
+        return offer_ids, median_yield
+        
