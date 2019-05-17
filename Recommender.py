@@ -243,10 +243,6 @@ class Recommender:
         # initialize sse at 0 for first iteration
         sse_accum = 0
 
-        # keep track of iteration and MSE
-        print("Optimizaiton Statistics")
-        print("Iterations | Mean Squared Error ")
-
         # for each iteration
         for iteration in range(iters):
 
@@ -271,9 +267,6 @@ class Recommender:
                         for k in range(latent_features):
                             user_mat[i, k] += learning_rate * (2 * diff * offer_mat[k, j])
                             offer_mat[k, j] += learning_rate * (2 * diff * user_mat[i, k])
-
-            # print results
-            print("%d \t\t %f" % (iteration+1, sse_accum / n_ratings))
             
         # get the user item matrix
         user_item_mat = user_mat @ offer_mat
