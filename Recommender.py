@@ -1,16 +1,12 @@
-from scipy.stats import norm
 import pandas as pd
 import numpy as np
 from scipy.stats import norm
 from sklearn.preprocessing import MultiLabelBinarizer
-from sklearn.decomposition import PCA
-from sklearn.metrics import silhouette_score
-from sklearn.cluster import DBSCAN
 
 class Recommender:        
     def fit(self, profile, portfolio, transcript):
         """
-        The fit method cleans the profile, portfolio and transcript dataframes and stores
+        cleans the profile, portfolio and transcript dataframes and stores
         them in the clean_profile, clean_transcript and clean_portfolio attributes. From
         this the user item matrix is computed on the basis of yield per advertisment for each user.
         The sparse user item matrix is filled using matrix factorization and stored as user_item
@@ -50,10 +46,9 @@ class Recommender:
         
     def predict(self, user_id, confidence=0.9):
         """
-        The predict method gets a sorted list of offers with the predicted yield. If the user
-        is in the database the prediction is done on the basis of collaborative filtering. Otherwise
-        the most popular ads are recommended. Only offers that will show profit with a certain
-        confidence are returned.
+        gets a sorted list of offers with the predicted yield. If the user is in the database the 
+        prediction is done on the basis of collaborative filtering. Otherwise the most popular ads 
+        are recommended. Only offers that will show profit with a certain confidence are returned.
 
         Args:
            user_id (str): id of the user for which an array of promising offers shall be returned
@@ -92,10 +87,9 @@ class Recommender:
     @staticmethod
     def __clean_data(profile, portfolio, transcript):
         """
-        The private and static __clean_data function takes the loaded profile, portfolio,
-        and transcript dataframes and cleans them. This includes the removal of unnecessary
-        columns, one hot encoding of categorical columns, unpacking of nested columns and categorization
-        of numeric data. Furthermore some additional features as the average user spendings and
+        takes the loaded profile, portfolio, and transcript dataframes and cleans them. This includes the 
+        removal of unnecessary columns, one hot encoding of categorical columns, unpacking of nested columns 
+        and categorization of numeric data. Furthermore some additional features as the average user spendings and
         the standard deviation are calculated and added to the user profile dataframe.
 
         Args:
