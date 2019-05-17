@@ -7,21 +7,7 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
 from sklearn.cluster import DBSCAN
 
-class Recommender:
-    """
-    This is an example of Google style.
-
-    Args:
-        param1: This is the first param.
-        param2: This is a second param.
-
-    Returns:
-        This is a description of what is returned.
-
-    Raises:
-        KeyError: Raises an exception.
-    """
-        
+class Recommender:        
     def fit(self, profile, portfolio, transcript):
         """
         The fit method cleans the profile, portfolio and transcript dataframes and stores
