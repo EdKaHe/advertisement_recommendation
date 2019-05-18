@@ -9,10 +9,11 @@ Exemplary data is provided in the example_data folder. The data can be extended 
 However, the format must stay the same to ensure proper functionality of the provided module.
 
 ## Files
-The main file in this project is the recommender.py file. Here, the algorithms for the recommendation engine are implemented.
-recommender.py contains a Recommender class, which can be used for the data analysis. The example.ipynb notebook contains some examples
-on how to use the Recommender class properly. The analysis.ipynb notebook contains the analysis that was performed for the Medium article
-[here](https://medium.com/@edizherkert/optimizing-the-profitability-of-customer-advertisements-b652c1e56bdb).
+The main file in this project is recommender.py. It contains a Recommender class with all required algorithms, 
+which can be used for the data analysis and recommendations. The example.ipynb notebook contains some examples
+on how to use the Recommender class properly. The analysis.ipynb notebook contains the analysis that was performed 
+for the Medium article [here](https://medium.com/@edizherkert/optimizing-the-profitability-of-customer-advertisements-b652c1e56bdb). 
+The example_data folder contains the datasets to analyse and the exports folder contains exported images from the analysis.ipynb notebook.
 
 ## Problem Formulation
 The goal of this project is to find a way to measure the profitability of advertisments and make recommendations to increase
