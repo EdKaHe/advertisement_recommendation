@@ -29,7 +29,7 @@ class Recommender:
         self.transcript = transcript
     
         # clean the dataframes
-        clean_profile, clean_portfolio, clean_transcript = Recommender.__clean_data(profile, portfolio, transcript)
+        clean_profile, clean_portfolio, clean_transcript = Recommender._clean_data(profile, portfolio, transcript)
         
         # add the cleaned data to the instance
         self.clean_profile = clean_profile
@@ -37,12 +37,12 @@ class Recommender:
         self.clean_transcript = clean_transcript
         
         # get the sparse user item matrix
-        user_item = Recommender.__user_item(clean_profile, clean_portfolio, clean_transcript)
+        user_item = Recommender._user_item(clean_profile, clean_portfolio, clean_transcript)
         
         # fill the missing values using matrix factorization
-        user_item = Recommender.__matrix_factorization(user_item)
+        full_user_item = Recommender._matrix_factorization(user_item)
         # add the full user item dataframe to the instance
-        self.user_item = user_item
+        self.full_user_item = full_user_item
         
     def predict(self, user_id, confidence=0.9):
         """
@@ -59,19 +59,19 @@ class Recommender:
                with a certain confidence
         """
         # get the user item dataframe
-        user_item = self.user_item
+        user_item = self.full_user_item
         # get the cleaned profile dataframe
         clean_profile = self.clean_profile 
         
         # check whether the user has completed any offers
         if np.any(user_item.index == user_id):
             # make recommendation based on collaborative recommendation
-            offer_id, predicted_yield = Recommender.__collaborative_recommendation(user_item, user_id)
+            offer_id, predicted_yield = Recommender._collaborative_recommendation(user_item, user_id)
             # get the standard deviation of the user spendings
             sigma = clean_profile.loc[clean_profile["user_id"]==user_id, "stddev_transaction"]
         else:
             # make recommendation based on the most popular ads 
-            offer_id, predicted_yield = Recommender.__popular_recommendation(user_item) 
+            offer_id, predicted_yield = Recommender._popular_recommendation(user_item) 
             # get the median standard deviation of all user spendings
             sigma = clean_profile["stddev_transaction"].median()
             
@@ -85,7 +85,7 @@ class Recommender:
         return offer_id
     
     @staticmethod
-    def __clean_data(profile, portfolio, transcript):
+    def _clean_data(profile, portfolio, transcript):
         """
         takes the loaded profile, portfolio, and transcript dataframes and cleans them. This includes the 
         removal of unnecessary columns, one hot encoding of categorical columns, unpacking of nested columns 
@@ -164,7 +164,7 @@ class Recommender:
         return profile, portfolio, transcript 
         
     @staticmethod
-    def __user_item(clean_profile, clean_portfolio, clean_transcript):
+    def _user_item(clean_profile, clean_portfolio, clean_transcript):
         """
         calculates the user item matrix based on the average yield that each advertisement
         returns for each user        
@@ -212,7 +212,7 @@ class Recommender:
         return user_item
     
     @staticmethod
-    def __matrix_factorization(user_item, latent_features=20, learning_rate=0.0001, iters=100):
+    def _matrix_factorization(user_item, latent_features=20, learning_rate=0.0001, iters=100):
         """
         performs matrix factorization on the sparse user-item matrix in order to fill the missing
         values and returns the user-item matrix after factorization
@@ -277,7 +277,7 @@ class Recommender:
         return user_item
         
     @staticmethod
-    def __collaborative_recommendation(user_item, user_id):
+    def _collaborative_recommendation(user_item, user_id):
         """
         make a advertisement recommendation for a user on the basis of the user-item matrix after
         matrix factorization
@@ -306,7 +306,7 @@ class Recommender:
         return offer_ids, predicted_yield
         
     @staticmethod
-    def __popular_recommendation(user_item):
+    def _popular_recommendation(user_item):
         """
         make a advertisement recommendation on the basis of the most popular advertisements
 

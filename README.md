@@ -12,7 +12,7 @@ However, the format must stay the same to ensure proper functionality of the pro
 The main file in this project is recommender.py. It contains a Recommender class with all required algorithms, 
 which can be used for the data analysis and recommendations. The example.ipynb notebook contains some examples
 on how to use the Recommender class properly. The analysis.ipynb notebook contains the analysis that was performed 
-for the Medium article [here](https://medium.com/@edizherkert/optimizing-the-profitability-of-customer-advertisements-b652c1e56bdb). 
+for the Medium article [here](https://medium.com/@edizherkert/optimizing-the-profitability-of-customer-advertisements-b652c1e56bdb). In the optimization.ipynb notebook the grid search optimization for fine-tuning the matrix factorization is performed.
 The example_data folder contains the datasets to analyse and the exports folder contains exported images from the analysis.ipynb notebook.
 
 ## Problem Formulation
