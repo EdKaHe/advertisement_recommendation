@@ -212,7 +212,7 @@ class Recommender:
         return user_item
     
     @staticmethod
-    def _matrix_factorization(user_item, latent_features=20, learning_rate=0.0001, iters=100):
+    def _matrix_factorization(user_item, latent_features=35, learning_rate=0.0002, iters=100):
         """
         performs matrix factorization on the sparse user-item matrix in order to fill the missing
         values and returns the user-item matrix after factorization
